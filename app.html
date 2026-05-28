@@ -122,12 +122,12 @@ nav{
 .badge-ok{background:var(--up);color:#fff}
 .badge-warn{background:var(--gld);color:#000}
 </style>
-</head>
+<script src="polyfills.js"></script></head>
 <body>
 
 <header>
   <h1>AI盯盘荐股</h1>
-  <button style="background:var(--bg3);border:2px solid var(--gld);border-radius:20px;padding:6px 16px;font-size:13px;color:var(--gld);font-weight:600;cursor:pointer;min-width:80px;min-height:36px" id="btnMode" onclick="toggleOnline()"><span class="dot off"></span> Offline</button>
+  <button style="background:var(--bg3);border:2px solid var(--gld);border-radius:20px;padding:6px 16px;font-size:13px;color:var(--gld);font-weight:600;cursor:pointer;min-width:80px;min-height:36px" id="btnMode" id="btnMode"><span class="dot off"></span> Offline</button>
 </header>
 
 <!-- 看板 -->
@@ -337,6 +337,7 @@ function genReview(){
 
 function renderAll(){renderIdx();renderSummary();renderPositions();renderManage();}
 renderAll();
+document.getElementById("btnMode").addEventListener("click",function(e){e.preventDefault();toggleOnline();});
 
 // ===== 操作 =====
 function openAddPos(){document.getElementById('modalAdd').classList.add('on');clearAddForm();}
