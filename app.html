@@ -1,0 +1,553 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0f172a">
+<title>AI盯盘荐股</title>
+<style>
+:root{
+  --bg:#0f172a;--bg2:#1e293b;--bg3:#334155;
+  --txt:#f1f5f9;--tx2:#94a3b8;
+  --up:#22c55e;--dn:#ef4444;--blu:#3b82f6;--gld:#f59e0b;
+  --brd:#334155;--rd:12px;--sb:env(safe-area-inset-bottom,16px);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--txt);-webkit-font-smoothing:antialiased;
+  overscroll-behavior:none;padding-bottom:80px;min-height:100vh;
+}
+header{
+  position:sticky;top:0;z-index:100;
+  background:linear-gradient(135deg,#1e3a5f,#0f172a);
+  padding:12px 16px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--brd);
+}
+header h1{font-size:18px;font-weight:700}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
+.dot.on{background:var(--up);animation:pulse 2s infinite}
+.dot.off{background:var(--tx2)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+nav{
+  position:fixed;bottom:0;left:0;right:0;background:var(--bg2);
+  border-top:1px solid var(--brd);display:flex;justify-content:space-around;
+  padding:8px 0 var(--sb);z-index:100;
+}
+.nav-btn{
+  display:flex;flex-direction:column;align-items:center;
+  padding:6px 12px;font-size:11px;color:var(--tx2);
+  cursor:pointer;border:none;background:none;
+}
+.nav-btn.on{color:var(--blu)}
+.nav-btn .ico{font-size:22px;margin-bottom:2px}
+.page{padding:16px;display:none}
+.page.show{display:block}
+.card{background:var(--bg2);border-radius:var(--rd);padding:16px;margin-bottom:12px;border:1px solid var(--brd)}
+.idx-bar{display:flex;justify-content:space-around;padding:12px 8px;gap:8px;overflow-x:auto}
+.idx-item{text-align:center;flex-shrink:0;min-width:90px}
+.idx-item .n{font-size:11px;color:var(--tx2)}
+.idx-item .v{font-size:16px;font-weight:700;margin:2px 0}
+.idx-item .c{font-size:12px;font-weight:600}
+.u{color:var(--up)}.d{color:var(--dn)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gi{background:var(--bg2);border-radius:var(--rd);padding:14px;text-align:center;border:1px solid var(--brd)}
+.gi .l{font-size:11px;color:var(--tx2)}
+.gi .v{font-size:20px;font-weight:700;margin-top:4px}
+.pos-row{display:flex;align-items:center;padding:12px;border-radius:var(--rd);background:var(--bg2);margin-bottom:8px;border:1px solid var(--brd)}
+.pos-info{flex:1}
+.pos-name{font-size:15px;font-weight:600}
+.pos-code{font-size:11px;color:var(--tx2);margin-left:6px}
+.pos-price{font-size:13px;color:var(--tx2);margin-top:2px}
+.pos-pnl{text-align:right}
+.pos-pnl .pf{font-size:17px;font-weight:700}
+.pos-pnl .pc{font-size:12px}
+.advice{background:linear-gradient(135deg,#1e293b,#1e3a5f);border:1px solid #3b82f6}
+.advice h3{color:var(--blu);margin-bottom:10px;font-size:16px}
+.advice pre{white-space:pre-wrap;font-size:14px;line-height:1.7;font-family:inherit;color:var(--txt)}
+.rs h4{font-size:14px;color:var(--gld);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--brd)}
+.rs p{font-size:14px;line-height:1.7;color:var(--tx2);white-space:pre-wrap;margin-bottom:0}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;
+  border:none;cursor:pointer;
+}
+.btn-p{background:var(--blu);color:#fff;width:100%}
+.btn-r{background:var(--dn);color:#fff}
+.btn-s{padding:6px 12px;font-size:12px}
+.btn-g{background:var(--up);color:#fff;width:100%}
+.btn-o{background:var(--gld);color:#000;width:100%}
+.btn:active{opacity:.8}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:13px;color:var(--tx2);margin-bottom:4px}
+.fg input,.fg select{
+  width:100%;padding:10px 12px;border-radius:8px;
+  background:var(--bg3);border:1px solid var(--brd);
+  color:var(--txt);font-size:15px;outline:none;
+}
+.fg input:focus{border-color:var(--blu)}
+.fr{display:flex;gap:8px}
+.fr .fg{flex:1}
+.modal{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;
+  align-items:flex-end;justify-content:center;
+}
+.modal.on{display:flex}
+.modal>div{
+  background:var(--bg2);border-radius:16px 16px 0 0;
+  padding:20px;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;
+}
+.modal h2{font-size:17px;margin-bottom:16px}
+.modal h3{font-size:14px;color:var(--gld);margin:12px 0 8px}
+.ld{text-align:center;padding:40px;color:var(--tx2)}
+.spin{width:30px;height:30px;border:3px solid var(--brd);border-top-color:var(--blu);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:60px 20px;color:var(--tx2)}
+.empty .ico{font-size:48px;margin-bottom:12px;opacity:.5}
+.tip{padding:8px 12px;background:#1e3a5f;border-radius:8px;font-size:12px;color:var(--tx2);margin-bottom:12px;text-align:center}
+.small{font-size:11px;color:var(--tx2);margin-top:2px}
+.flex-between{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.img-preview{width:100%;border-radius:8px;border:2px solid var(--brd);margin-bottom:12px;display:none}
+.progress-bar{width:100%;height:6px;background:var(--bg3);border-radius:3px;margin:8px 0;overflow:hidden}
+.progress-bar>div{height:100%;background:var(--blu);border-radius:3px;transition:width .3s}
+.ocr-result{max-height:200px;overflow-y:auto;background:var(--bg3);border-radius:8px;padding:12px;font-size:13px;line-height:1.6;color:var(--tx2);margin-bottom:12px;white-space:pre-wrap;font-family:monospace}
+.parsed-pos{border:1px solid var(--brd);border-radius:8px;padding:10px 12px;margin-bottom:6px}
+.parsed-pos .pp-head{display:flex;justify-content:space-between;font-weight:600;font-size:14px;margin-bottom:4px}
+.parsed-pos .pp-body{font-size:12px;color:var(--tx2)}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;margin-left:6px}
+.badge-ok{background:var(--up);color:#fff}
+.badge-warn{background:var(--gld);color:#000}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>AI盯盘荐股</h1>
+  <div id="statusBar"><span class="dot off"></span><span style="font-size:12px;color:var(--tx2)">离线模式</span></div>
+</header>
+
+<!-- 看板 -->
+<div class="page show" id="pg-dash">
+  <div class="tip">📡 离线演示模式 | 接入API后可获取实时数据</div>
+  <div class="idx-bar" id="idxBar"></div>
+  <div class="card"><div class="grid2" id="summary"></div></div>
+  <div class="card advice" id="adviceBox" style="display:none">
+    <h3>AI盘中建议</h3>
+    <div style="float:right;margin-top:-30px"><button class="btn btn-s btn-r" onclick="genAdvice()">刷新</button></div>
+    <pre id="adviceTxt"></pre>
+  </div>
+  <button class="btn btn-p" id="btnAdvice" onclick="genAdvice()" style="margin-bottom:12px">获取AI操作建议</button>
+  <h3 style="font-size:15px;margin-bottom:10px" id="posTitle">我的持仓</h3>
+  <div id="posList"></div>
+</div>
+
+<!-- 持仓管理 -->
+<div class="page" id="pg-hold">
+  <button class="btn btn-o" onclick="openImportModal()" style="margin-bottom:8px">📸 导入持仓截图</button>
+  <button class="btn btn-p" onclick="openAddPos()" style="margin-bottom:12px">+ 手动添加</button>
+  <div id="posManage"></div>
+  <h3 style="font-size:14px;margin:20px 0 10px;color:var(--tx2)">资金管理</h3>
+  <div class="card">
+    <div class="fr">
+      <div class="fg"><label>总资金(元)</label><input type="number" id="capTotal" placeholder="100000"></div>
+      <div class="fg"><label>可用资金(元)</label><input type="number" id="capCash" placeholder="50000"></div>
+    </div>
+    <button class="btn btn-p" onclick="saveCapital()">更新资金</button>
+  </div>
+</div>
+
+<!-- 复盘 -->
+<div class="page" id="pg-rev">
+  <div class="flex-between"><h3 style="font-size:15px">每日复盘</h3><button class="btn btn-s btn-p" style="width:auto" onclick="genReview()">手动生成</button></div>
+  <div id="reviewBox"></div>
+</div>
+
+<nav>
+  <button class="nav-btn on" data-pg="dash" onclick="switchPg('dash')"><span class="ico">📈</span>看板</button>
+  <button class="nav-btn" data-pg="hold" onclick="switchPg('hold')"><span class="ico">💼</span>持仓</button>
+  <button class="nav-btn" data-pg="rev" onclick="switchPg('rev')"><span class="ico">📝</span>复盘</button>
+</nav>
+
+<!-- 添加持仓弹窗 -->
+<div class="modal" id="modalAdd">
+  <div>
+    <h2>手动添加持仓</h2>
+    <div class="fg"><label>股票代码*</label><input id="addCode" placeholder="000001"></div>
+    <div class="fg"><label>股票名称</label><input id="addName" placeholder="平安银行"></div>
+    <div class="fr">
+      <div class="fg"><label>买入价*</label><input type="number" step="0.01" id="addPrice"></div>
+      <div class="fg"><label>数量(股)*</label><input type="number" id="addQty" value="100"></div>
+    </div>
+    <button class="btn btn-p" onclick="addPosition()" style="margin-top:8px">确认添加</button>
+  </div>
+</div>
+
+<!-- 导入截图弹窗 -->
+<div class="modal" id="modalImport">
+  <div>
+    <h2>📸 导入金太阳持仓截图</h2>
+    <p style="font-size:13px;color:var(--tx2);margin-bottom:12px">
+      1. 打开金太阳App → 持仓页面截图<br>
+      2. 回到本页面 → 上传截图<br>
+      3. 系统自动识别持仓数据
+    </p>
+    <input type="file" accept="image/*" id="importFile" style="display:none" onchange="handleImportFile(event)">
+    <button class="btn btn-o" onclick="document.getElementById('importFile').click()" id="btnSelectImg">📁 选择截图文件</button>
+
+    <div id="ocrSection" style="display:none;margin-top:12px">
+      <img id="imgPreview" class="img-preview">
+      <div class="progress-bar"><div id="ocrProgress" style="width:0%"></div></div>
+      <div id="ocrStatus" style="font-size:12px;color:var(--tx2);text-align:center"></div>
+      <div id="ocrRawText" class="ocr-result" style="display:none"></div>
+      <div id="parsedResults"></div>
+      <button class="btn btn-g" id="btnSaveImport" style="display:none;margin-top:12px" onclick="saveImportedPositions()">✅ 确认导入选中持仓</button>
+      <div id="ocrError" style="display:none;color:var(--dn);font-size:13px;margin-top:8px;text-align:center"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+// ===== 数据存储 =====
+const LS={get(k){try{return JSON.parse(localStorage.getItem(k))}catch{return null}},set(k,v){localStorage.setItem(JSON.stringify(v))}};
+if(!LS.get('pos')) LS.set('pos',[]);
+if(!LS.get('cap')) LS.set('cap',{total:100000,cash:50000});
+
+function getPos(){return LS.get('pos')||[]}
+function getCap(){return LS.get('cap')||{total:100000,cash:50000}}
+function savePos(arr){LS.set('pos',arr);renderAll()}
+function saveCapObj(obj){LS.set('cap',obj);renderAll()}
+
+// ===== 模拟行情 =====
+const stockNames={
+  '000001':'平安银行','000002':'万科A','000858':'五粮液','002594':'比亚迪',
+  '300750':'宁德时代','600036':'招商银行','600519':'贵州茅台','601318':'中国平安',
+  '600887':'伊利股份','002415':'海康威视','000333':'美的集团','300059':'东方财富',
+  '601166':'兴业银行','600030':'中信证券','002475':'立讯精密','600276':'恒瑞医药',
+  '000725':'京东方A','601888':'中国中免','300015':'爱尔眼科','600809':'山西汾酒',
+  '688981':'中芯国际','601012':'隆基绿能','002714':'牧原股份','300274':'阳光电源'
+};
+let mockCache={};
+function mockQuote(code){
+  if(mockCache[code]) return mockCache[code];
+  let base=code.startsWith('688')?55:code.startsWith('60')?28:code.startsWith('00')?22:code.startsWith('30')?65:45;
+  let baseP=base+Math.random()*30;
+  let change=(Math.random()-0.45)*6;
+  let q={code,name:stockNames[code]||code,price:parseFloat(baseP.toFixed(2)),change:parseFloat(change.toFixed(2)),high:parseFloat((baseP+Math.random()*2).toFixed(2)),low:parseFloat((baseP-Math.random()*2).toFixed(2)),open:parseFloat((baseP-Math.random()*1).toFixed(2)),vol:Math.floor(Math.random()*50000000)};
+  mockCache[code]=q;
+  return q;
+}
+const mockIdx={'上证指数':{price:3215.48,change:0.37},'深证成指':{price:10786.32,change:-0.21},'创业板指':{price:2156.78,change:0.85},'科创50':{price:876.54,change:1.23}};
+
+// ===== 渲染 =====
+function fmt(n,d=2){return (n||0).toFixed(d)}
+function cls(v){return v>=0?'u':'d'}
+function sign(v){return v>=0?'+':''}
+
+function renderIdx(){
+  let h='';
+  for(let[k,v]of Object.entries(mockIdx)) h+=`<div class="idx-item"><div class="n">${k}</div><div class="v ${cls(v.change)}">${fmt(v.price)}</div><div class="c ${cls(v.change)}">${sign(v.change)}${fmt(v.change)}%</div></div>`;
+  document.getElementById('idxBar').innerHTML=h;
+}
+function renderSummary(){
+  let pos=getPos(),cap=getCap(),mv=0,pnl=0;
+  pos.forEach(p=>{let q=mockQuote(p.code),m=p.qty*q.price;mv+=m;pnl+=m-p.qty*p.price_buy;});
+  document.getElementById('summary').innerHTML=`<div class="gi"><div class="l">总资产</div><div class="v">${fmt(cap.total)}</div></div><div class="gi"><div class="l">持仓市值</div><div class="v">${fmt(mv)}</div></div><div class="gi"><div class="l">可用资金</div><div class="v">${fmt(cap.cash)}</div></div><div class="gi"><div class="l">总盈亏</div><div class="v ${cls(pnl)}">${sign(pnl)}${fmt(pnl)}</div></div>`;
+}
+function renderPositions(){
+  let pos=getPos(),h='';
+  if(pos.length===0){h=`<div class="empty"><div class="ico">📊</div><div>暂无持仓</div><div class="small">点击下方"持仓"→"导入截图"快速添加</div></div>`;document.getElementById('btnAdvice').style.display='none';document.getElementById('posTitle').style.display='none';}
+  else{document.getElementById('btnAdvice').style.display='block';document.getElementById('posTitle').style.display='block';
+    pos.forEach(p=>{let q=mockQuote(p.code),mv=q.price*p.qty,cv=p.price_buy*p.qty,pf=mv-cv,pfp=cv>0?(pf/cv*100):0;
+      h+=`<div class="pos-row"><div class="pos-info"><div><span class="pos-name">${q.name}</span><span class="pos-code">${p.code}</span></div><div class="pos-price">成本${fmt(p.price_buy)} | 现价${fmt(q.price)} | ${p.qty}股</div></div><div class="pos-pnl"><div class="pf ${cls(pfp)}">${sign(pfp)}${fmt(pfp)}%</div><div class="pc ${cls(pf)}">${sign(pf)}${fmt(pf)}</div></div></div>`;});
+  }
+  document.getElementById('posList').innerHTML=h;
+}
+function renderManage(){
+  let pos=getPos();
+  if(pos.length===0) document.getElementById('posManage').innerHTML=`<div class="empty"><div class="ico">📋</div><div>还没有持仓记录</div></div>`;
+  else{let h='';pos.forEach((p,i)=>{let q=mockQuote(p.code);h+=`<div class="pos-row"><div class="pos-info"><div><span class="pos-name">${q.name}</span><span class="pos-code">${p.code}</span></div><div class="pos-price">${p.qty}股 @ ${fmt(p.price_buy)}</div></div><button class="btn btn-s btn-r" onclick="delPos(${i})">删除</button></div>`;});document.getElementById('posManage').innerHTML=h;}
+  let cap=getCap();
+  document.getElementById('capTotal').value=cap.total;
+  document.getElementById('capCash').value=cap.cash;
+}
+
+function genAdvice(){
+  let pos=getPos(),cap=getCap();
+  if(pos.length===0){document.getElementById('adviceTxt').innerHTML='⚠️ 暂无持仓，请先添加持仓记录。';document.getElementById('adviceBox').style.display='block';return;}
+  let lines=[],totalRisk=0;
+  let idxChg=mockIdx['上证指数'].change;
+  let marketView=idxChg>1?'偏强':idxChg<-1?'偏弱':'震荡';
+  lines.push(`【市场环境】上证${sign(idxChg)}${fmt(idxChg)}%，市场${marketView}`);
+  lines.push('');
+  pos.forEach(p=>{let q=mockQuote(p.code),pfp=(q.price-p.price_buy)/p.price_buy*100,advice='';
+    if(pfp>15)advice='⚠️ 止盈：涨幅较大，建议分批止盈';
+    else if(pfp>5)advice='✅ 持有：趋势向好，继续持有';
+    else if(pfp<-10)advice='🔴 止损：跌幅较大，设止损控制风险';
+    else if(pfp<-5)advice='⚠️ 谨慎：短期走弱，密切关注';
+    else if(pfp>=0)advice='👍 持有：微利可持，观察走势';
+    else advice='⏳ 观望：略亏，等待企稳';
+    if(q.change>5)advice+=' | 今日大幅拉升，注意追高风险';
+    if(q.change<-5)advice+=' | 今日大幅下跌，关注支撑位';
+    lines.push(`📌 ${q.name}(${p.code})`);
+    lines.push(`   成本${fmt(p.price_buy)} → 现价${fmt(q.price)} | 盈亏${sign(pfp)}${fmt(pfp)}%`);
+    lines.push(`   建议：${advice}`);lines.push('');
+    if(pfp<-5)totalRisk+=Math.abs(pfp);
+  });
+  let mv=pos.reduce((s,p)=>s+mockQuote(p.code).price*p.qty,0),ratio=mv/cap.total*100;
+  lines.push(`【仓位管理】当前仓位${fmt(ratio)}%`);
+  if(ratio>80)lines.push('⚠️ 仓位偏重，建议降低至6-7成');
+  else if(ratio>60)lines.push('⚡ 仓位适中，可灵活调整');
+  else if(ratio>30)lines.push('👍 仓位较轻，可关注机会加仓');
+  else lines.push('💤 仓位很低，可精选标的逐步布局');
+  if(totalRisk>20)lines.push('🚨 风险提示：部分持仓跌幅较大，请审视持仓逻辑');
+  document.getElementById('adviceTxt').innerHTML=lines.join('\n');
+  document.getElementById('adviceBox').style.display='block';
+}
+function genReview(){
+  let pos=getPos(),idx=mockIdx,lines=[];
+  lines.push(`📅 复盘日期：${new Date().toISOString().slice(0,10)}`);lines.push('');
+  lines.push('━━━ 大盘概况 ━━━');
+  for(let[k,v]of Object.entries(idx)) lines.push(`${k}：${fmt(v.price)}（${sign(v.change)}${fmt(v.change)}%）`);
+  let mc=idx['上证指数'].change>0?'收红':'收绿';
+  lines.push(`市场整体${mc}，交投活跃度中等`);lines.push('');
+  lines.push('━━━ 板块分析 ━━━');
+  lines.push('领涨：人工智能、新能源、半导体');
+  lines.push('领跌：房地产、银行、煤炭');
+  lines.push('北向资金小幅流入，内资观望情绪较重');lines.push('');
+  lines.push('━━━ 持仓回顾 ━━━');
+  if(pos.length===0)lines.push('暂无持仓记录');
+  else pos.forEach(p=>{let q=mockQuote(p.code),pfp=(q.price-p.price_buy)/p.price_buy*100;lines.push(`${q.name}(${p.code})：${sign(pfp)}${fmt(pfp)}%`);});
+  lines.push('');lines.push('━━━ 明日策略 ━━━');
+  lines.push('1. 关注量能变化，若放量突破可适当加仓');
+  lines.push('2. 持仓股设好止损位，控制回撤风险');
+  lines.push('3. 关注晚间消息面变化');lines.push('');
+  lines.push('━━━ 关注标的 ━━━');
+  lines.push('科技：芯片ETF、科创50ETF');
+  lines.push('消费：白酒板块关注底部信号');
+  lines.push('新能源：关注锂电龙头调整后的机会');
+  document.getElementById('reviewBox').innerHTML=`<div class="card" style="margin-bottom:8px">${lines.map(l=>`<p style="font-size:14px;line-height:1.8;color:var(--txt);margin:0;white-space:pre-wrap">${l}</p>`).join('')}</div>`;
+}
+
+function renderAll(){renderIdx();renderSummary();renderPositions();renderManage();}
+renderAll();
+
+// ===== 操作 =====
+function openAddPos(){document.getElementById('modalAdd').classList.add('on');clearAddForm();}
+function clearAddForm(){document.getElementById('addCode').value='';document.getElementById('addName').value='';document.getElementById('addPrice').value='';document.getElementById('addQty').value='100';}
+document.getElementById('modalAdd').addEventListener('click',function(e){if(e.target===this){this.classList.remove('on');clearAddForm();}});
+function addPosition(){
+  let code=document.getElementById('addCode').value.trim(),name=document.getElementById('addName').value.trim(),price=parseFloat(document.getElementById('addPrice').value),qty=parseInt(document.getElementById('addQty').value);
+  if(!code||!price||!qty||isNaN(price)||isNaN(qty)){alert('请填写完整信息');return}
+  let pos=getPos();
+  // 检查重复
+  let exist=pos.findIndex(p=>p.code===code);
+  if(exist>=0){if(!confirm(`${code} 已存在，是否覆盖？`))return;pos[exist]={code,name,price_buy:price,qty,date:new Date().toISOString().slice(0,10)};}
+  else pos.push({code,name,price_buy:price,qty,date:new Date().toISOString().slice(0,10)});
+  savePos(pos);document.getElementById('modalAdd').classList.remove('on');clearAddForm();
+}
+function delPos(i){if(!confirm('确定删除该持仓？'))return;let pos=getPos();pos.splice(i,1);savePos(pos);}
+function saveCapital(){
+  let t=parseFloat(document.getElementById('capTotal').value),c=parseFloat(document.getElementById('capCash').value);
+  if(isNaN(t)||isNaN(c)){alert('请填写有效金额');return}
+  saveCapObj({total:t,cash:c});
+}
+function switchPg(pg){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('show'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('pg-'+pg).classList.add('show');
+  document.querySelector(`[data-pg="${pg}"]`).classList.add('on');
+  if(pg==='dash'){renderIdx();renderSummary();renderPositions();}
+  if(pg==='hold')renderManage();
+  if(pg==='rev')genReview();
+}
+
+// ===== 截图导入OCR =====
+let ocrParsedPositions=[];
+
+function openImportModal(){
+  ocrParsedPositions=[];
+  document.getElementById('importFile').value='';
+  document.getElementById('ocrSection').style.display='none';
+  document.getElementById('btnSaveImport').style.display='none';
+  document.getElementById('ocrError').style.display='none';
+  document.getElementById('btnSelectImg').style.display='block';
+  document.getElementById('modalImport').classList.add('on');
+}
+document.getElementById('modalImport').addEventListener('click',function(e){if(e.target===this)this.classList.remove('on');});
+
+function handleImportFile(event){
+  let file=event.target.files[0];
+  if(!file)return;
+
+  // 预览
+  let reader=new FileReader();
+  reader.onload=function(e){
+    let img=document.getElementById('imgPreview');
+    img.src=e.target.result;
+    img.style.display='block';
+  };
+  reader.readAsDataURL(file);
+
+  document.getElementById('ocrSection').style.display='block';
+  document.getElementById('btnSelectImg').style.display='none';
+  document.getElementById('ocrStatus').textContent='正在加载OCR引擎...';
+  document.getElementById('ocrProgress').style.width='10%';
+  document.getElementById('ocrRawText').style.display='none';
+  document.getElementById('parsedResults').innerHTML='';
+  document.getElementById('btnSaveImport').style.display='none';
+  document.getElementById('ocrError').style.display='none';
+
+  // OCR识别
+  doOCR(file);
+}
+
+async function doOCR(file){
+  try{
+    let statusEl=document.getElementById('ocrStatus');
+    let progressEl=document.getElementById('ocrProgress');
+
+    statusEl.textContent='OCR引擎加载中...';
+
+    let worker=await Tesseract.createWorker('chi_sim+eng',1,{
+      logger:m=>{
+        if(m.status==='recognizing text'){
+          let pct=10+Math.round(m.progress*70);
+          progressEl.style.width=pct+'%';
+          statusEl.textContent=`识别中... ${Math.round(m.progress*100)}%`;
+        }
+      }
+    });
+
+    progressEl.style.width='80%';
+    statusEl.textContent='文字识别中...';
+
+    let result=await worker.recognize(file);
+    await worker.terminate();
+
+    progressEl.style.width='100%';
+    statusEl.textContent='识别完成，正在解析...';
+
+    // 显示原始OCR文本
+    let rawText=result.data.text;
+    document.getElementById('ocrRawText').textContent=rawText;
+    document.getElementById('ocrRawText').style.display='block';
+
+    // 解析持仓数据
+    ocrParsedPositions=parseStockPositions(rawText);
+    renderParseResults(ocrParsedPositions);
+
+    statusEl.textContent=`识别完成，找到 ${ocrParsedPositions.length} 条持仓记录`;
+  }catch(err){
+    console.error('OCR失败:',err);
+    document.getElementById('ocrError').textContent='OCR识别失败: '+err.message+'。请确认截图清晰度，或尝试手动添加。';
+    document.getElementById('ocrError').style.display='block';
+    document.getElementById('ocrStatus').textContent='识别失败';
+    document.getElementById('ocrProgress').style.width='0%';
+  }
+}
+
+function parseStockPositions(text){
+  // 金太阳持仓页面常见格式解析
+  // 格式示例:
+  // 证券代码  证券名称  持仓数量  成本价  现价  盈亏
+  // 000001   平安银行   1000    10.50   10.80  +300.00
+
+  let positions=[];
+  let lines=text.split('\n').map(l=>l.trim()).filter(l=>l);
+
+  // 正则匹配: 6位数字代码 + 中文名称 + 数字
+  let stockPattern=/(\d{6})\s+([\u4e00-\u9fa5A-Za-z*]+)\s+.*?(\d[\d,]*)\s+.*?([\d.]+)/;
+  // 更宽松的匹配
+  let loosePattern=/(\d{6})\D+([\u4e00-\u9fa5A-Za-z*]{2,8})\D+(\d[\d,]*)\D+([\d.]{3,8})/;
+
+  for(let line of lines){
+    // 跳过标题行
+    if(/证券代码|持仓|盈亏|合计|代码/.test(line)&&!/\d{6}/.test(line))continue;
+
+    let m=line.match(stockPattern)||line.match(loosePattern);
+    if(m){
+      let code=m[1],
+          name=m[2].replace(/\*/g,'').trim(),
+          qty=parseInt(m[3].replace(/,/g,'')),
+          price=parseFloat(m[4]);
+
+      // 过滤无效数据
+      if(qty>0&&price>0&&price<99999){
+        // 去除名称中的多余字符
+        name=name.replace(/[^\\u4e00-\\u9fa5A-Za-z]/g,'');
+        if(name.length<2)continue;
+
+        // 去重
+        if(!positions.find(p=>p.code===code)){
+          positions.push({code,name,price_buy:price,qty,date:new Date().toISOString().slice(0,10),checked:true});
+        }
+      }
+    }
+  }
+
+  return positions;
+}
+
+function renderParseResults(positions){
+  let el=document.getElementById('parsedResults');
+  if(positions.length===0){
+    el.innerHTML='<p style="color:var(--gld);text-align:center;margin:12px 0">⚠️ 未能自动识别到持仓数据</p><p style="font-size:12px;color:var(--tx2);text-align:center">请检查截图是否包含持仓页面，或使用手动添加</p>';
+    document.getElementById('btnSaveImport').style.display='none';
+    return;
+  }
+
+  let h='<h3 style="margin-top:12px">识别结果（勾选需导入的项目）</h3>';
+  positions.forEach((p,i)=>{
+    h+=`<div class="parsed-pos" style="cursor:pointer;${p.checked?'':'opacity:.5'}" onclick="toggleParsed(${i})">
+      <div class="pp-head">
+        <span>${p.name} <span class="badge ${p.checked?'badge-ok':'badge-warn'}">${p.checked?'✓ 导入':'✗ 跳过'}</span></span>
+        <span style="color:var(--tx2)">${p.code}</span>
+      </div>
+      <div class="pp-body">成本价: ${fmt(p.price_buy)} | 数量: ${p.qty}股</div>
+    </div>`;
+  });
+  h+='<div style="font-size:12px;color:var(--tx2);text-align:center;margin-top:8px">💡 点击可切换"导入/跳过"，识别有误可手动修正</div>';
+  el.innerHTML=h;
+
+  let hasChecked=positions.some(p=>p.checked);
+  document.getElementById('btnSaveImport').style.display=hasChecked?'block':'none';
+}
+
+function toggleParsed(i){
+  ocrParsedPositions[i].checked=!ocrParsedPositions[i].checked;
+  renderParseResults(ocrParsedPositions);
+}
+
+function saveImportedPositions(){
+  let toImport=ocrParsedPositions.filter(p=>p.checked);
+  if(toImport.length===0){alert('请至少勾选一条持仓记录');return}
+
+  let existing=getPos();
+  toImport.forEach(p=>{
+    let idx=existing.findIndex(e=>e.code===p.code);
+    if(idx>=0)existing[idx]=p;
+    else existing.push(p);
+  });
+  savePos(existing);
+  document.getElementById('modalImport').classList.remove('on');
+}
+setInterval(()=>{mockCache={};if(document.getElementById('pg-dash').classList.contains('show')){renderIdx();renderSummary();renderPositions();}},15000);
+</script>
+
+<script>
+// 注册 Service Worker (PWA离线支持)
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js").then(function(reg) {
+    console.log("SW registered:", reg.scope);
+  }).catch(function(err) {
+    console.log("SW registration failed:", err);
+  });
+}
+</script>
+</body>
+</html>
