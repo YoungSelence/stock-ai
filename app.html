@@ -122,17 +122,19 @@ nav{
 .badge-ok{background:var(--up);color:#fff}
 .badge-warn{background:var(--gld);color:#000}
 </style>
+<script src="/api.js"></script>
+<script src="/api.js"></script>
 </head>
 <body>
 
 <header>
   <h1>AI盯盘荐股</h1>
-  <div id="statusBar"><span class="dot off"></span><span style="font-size:12px;color:var(--tx2)">离线模式</span></div>
+  <button class="btn-t" id="btnMode" onclick="toggleOnline()"><span class="dot off"></span>Offline</button>
 </header>
 
 <!-- 看板 -->
 <div class="page show" id="pg-dash">
-  <div class="tip">📡 离线演示模式 | 接入API后可获取实时数据</div>
+  <div class="tip">📡 <span id="modeTip">Offline (tap top-right to switch online)</span></div>
   <div class="idx-bar" id="idxBar"></div>
   <div class="card"><div class="grid2" id="summary"></div></div>
   <div class="card advice" id="adviceBox" style="display:none">
@@ -142,7 +144,9 @@ nav{
   </div>
   <button class="btn btn-p" id="btnAdvice" onclick="genAdvice()" style="margin-bottom:12px">获取AI操作建议</button>
   <h3 style="font-size:15px;margin-bottom:10px" id="posTitle">我的持仓</h3>
-  <div id="posList"></div>
+  <div id="posList"><div class="api-status" id="apiStatus"></div>
+<div class="api-status" id="apiStatus"></div>
+</div>
 </div>
 
 <!-- 持仓管理 -->
@@ -231,8 +235,8 @@ const stockNames={
   '000725':'京东方A','601888':'中国中免','300015':'爱尔眼科','600809':'山西汾酒',
   '688981':'中芯国际','601012':'隆基绿能','002714':'牧原股份','300274':'阳光电源'
 };
-let mockCache={};
-function mockQuote(code){
+let quoteCache={};
+function getQuote(code){
   if(mockCache[code]) return mockCache[code];
   let base=code.startsWith('688')?55:code.startsWith('60')?28:code.startsWith('00')?22:code.startsWith('30')?65:45;
   let baseP=base+Math.random()*30;
@@ -250,19 +254,19 @@ function sign(v){return v>=0?'+':''}
 
 function renderIdx(){
   let h='';
-  for(let[k,v]of Object.entries(mockIdx)) h+=`<div class="idx-item"><div class="n">${k}</div><div class="v ${cls(v.change)}">${fmt(v.price)}</div><div class="c ${cls(v.change)}">${sign(v.change)}${fmt(v.change)}%</div></div>`;
+  for(let[k,v]of Object.entries(getIdx())) h+=`<div class="idx-item"><div class="n">${k}</div><div class="v ${cls(v.change)}">${fmt(v.price)}</div><div class="c ${cls(v.change)}">${sign(v.change)}${fmt(v.change)}%</div></div>`;
   document.getElementById('idxBar').innerHTML=h;
 }
 function renderSummary(){
   let pos=getPos(),cap=getCap(),mv=0,pnl=0;
-  pos.forEach(p=>{let q=mockQuote(p.code),m=p.qty*q.price;mv+=m;pnl+=m-p.qty*p.price_buy;});
+  pos.forEach(p=>{let q=getQuote(p.code),m=p.qty*q.price;mv+=m;pnl+=m-p.qty*p.price_buy;});
   document.getElementById('summary').innerHTML=`<div class="gi"><div class="l">总资产</div><div class="v">${fmt(cap.total)}</div></div><div class="gi"><div class="l">持仓市值</div><div class="v">${fmt(mv)}</div></div><div class="gi"><div class="l">可用资金</div><div class="v">${fmt(cap.cash)}</div></div><div class="gi"><div class="l">总盈亏</div><div class="v ${cls(pnl)}">${sign(pnl)}${fmt(pnl)}</div></div>`;
 }
 function renderPositions(){
   let pos=getPos(),h='';
   if(pos.length===0){h=`<div class="empty"><div class="ico">📊</div><div>暂无持仓</div><div class="small">点击下方"持仓"→"导入截图"快速添加</div></div>`;document.getElementById('btnAdvice').style.display='none';document.getElementById('posTitle').style.display='none';}
   else{document.getElementById('btnAdvice').style.display='block';document.getElementById('posTitle').style.display='block';
-    pos.forEach(p=>{let q=mockQuote(p.code),mv=q.price*p.qty,cv=p.price_buy*p.qty,pf=mv-cv,pfp=cv>0?(pf/cv*100):0;
+    pos.forEach(p=>{let q=getQuote(p.code),mv=q.price*p.qty,cv=p.price_buy*p.qty,pf=mv-cv,pfp=cv>0?(pf/cv*100):0;
       h+=`<div class="pos-row"><div class="pos-info"><div><span class="pos-name">${q.name}</span><span class="pos-code">${p.code}</span></div><div class="pos-price">成本${fmt(p.price_buy)} | 现价${fmt(q.price)} | ${p.qty}股</div></div><div class="pos-pnl"><div class="pf ${cls(pfp)}">${sign(pfp)}${fmt(pfp)}%</div><div class="pc ${cls(pf)}">${sign(pf)}${fmt(pf)}</div></div></div>`;});
   }
   document.getElementById('posList').innerHTML=h;
@@ -270,7 +274,7 @@ function renderPositions(){
 function renderManage(){
   let pos=getPos();
   if(pos.length===0) document.getElementById('posManage').innerHTML=`<div class="empty"><div class="ico">📋</div><div>还没有持仓记录</div></div>`;
-  else{let h='';pos.forEach((p,i)=>{let q=mockQuote(p.code);h+=`<div class="pos-row"><div class="pos-info"><div><span class="pos-name">${q.name}</span><span class="pos-code">${p.code}</span></div><div class="pos-price">${p.qty}股 @ ${fmt(p.price_buy)}</div></div><button class="btn btn-s btn-r" onclick="delPos(${i})">删除</button></div>`;});document.getElementById('posManage').innerHTML=h;}
+  else{let h='';pos.forEach((p,i)=>{let q=getQuote(p.code);h+=`<div class="pos-row"><div class="pos-info"><div><span class="pos-name">${q.name}</span><span class="pos-code">${p.code}</span></div><div class="pos-price">${p.qty}股 @ ${fmt(p.price_buy)}</div></div><button class="btn btn-s btn-r" onclick="delPos(${i})">删除</button></div>`;});document.getElementById('posManage').innerHTML=h;}
   let cap=getCap();
   document.getElementById('capTotal').value=cap.total;
   document.getElementById('capCash').value=cap.cash;
@@ -284,7 +288,7 @@ function genAdvice(){
   let marketView=idxChg>1?'偏强':idxChg<-1?'偏弱':'震荡';
   lines.push(`【市场环境】上证${sign(idxChg)}${fmt(idxChg)}%，市场${marketView}`);
   lines.push('');
-  pos.forEach(p=>{let q=mockQuote(p.code),pfp=(q.price-p.price_buy)/p.price_buy*100,advice='';
+  pos.forEach(p=>{let q=getQuote(p.code),pfp=(q.price-p.price_buy)/p.price_buy*100,advice='';
     if(pfp>15)advice='⚠️ 止盈：涨幅较大，建议分批止盈';
     else if(pfp>5)advice='✅ 持有：趋势向好，继续持有';
     else if(pfp<-10)advice='🔴 止损：跌幅较大，设止损控制风险';
@@ -298,7 +302,7 @@ function genAdvice(){
     lines.push(`   建议：${advice}`);lines.push('');
     if(pfp<-5)totalRisk+=Math.abs(pfp);
   });
-  let mv=pos.reduce((s,p)=>s+mockQuote(p.code).price*p.qty,0),ratio=mv/cap.total*100;
+  let mv=pos.reduce((s,p)=>s+getQuote(p.code).price*p.qty,0),ratio=mv/cap.total*100;
   lines.push(`【仓位管理】当前仓位${fmt(ratio)}%`);
   if(ratio>80)lines.push('⚠️ 仓位偏重，建议降低至6-7成');
   else if(ratio>60)lines.push('⚡ 仓位适中，可灵活调整');
@@ -309,7 +313,7 @@ function genAdvice(){
   document.getElementById('adviceBox').style.display='block';
 }
 function genReview(){
-  let pos=getPos(),idx=mockIdx,lines=[];
+  let pos=getPos(),idx=getIdx(),lines=[];
   lines.push(`📅 复盘日期：${new Date().toISOString().slice(0,10)}`);lines.push('');
   lines.push('━━━ 大盘概况 ━━━');
   for(let[k,v]of Object.entries(idx)) lines.push(`${k}：${fmt(v.price)}（${sign(v.change)}${fmt(v.change)}%）`);
@@ -321,7 +325,7 @@ function genReview(){
   lines.push('北向资金小幅流入，内资观望情绪较重');lines.push('');
   lines.push('━━━ 持仓回顾 ━━━');
   if(pos.length===0)lines.push('暂无持仓记录');
-  else pos.forEach(p=>{let q=mockQuote(p.code),pfp=(q.price-p.price_buy)/p.price_buy*100;lines.push(`${q.name}(${p.code})：${sign(pfp)}${fmt(pfp)}%`);});
+  else pos.forEach(p=>{let q=getQuote(p.code),pfp=(q.price-p.price_buy)/p.price_buy*100;lines.push(`${q.name}(${p.code})：${sign(pfp)}${fmt(pfp)}%`);});
   lines.push('');lines.push('━━━ 明日策略 ━━━');
   lines.push('1. 关注量能变化，若放量突破可适当加仓');
   lines.push('2. 持仓股设好止损位，控制回撤风险');
@@ -536,7 +540,7 @@ function saveImportedPositions(){
   savePos(existing);
   document.getElementById('modalImport').classList.remove('on');
 }
-setInterval(()=>{mockCache={};if(document.getElementById('pg-dash').classList.contains('show')){renderIdx();renderSummary();renderPositions();}},15000);
+setInterval(()=>{quoteCache={};if(document.getElementById('pg-dash').classList.contains('show')){renderIdx();renderSummary();renderPositions();}},15000);
 </script>
 
 <script>
