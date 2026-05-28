@@ -215,7 +215,7 @@ nav{
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 // ===== 数据存储 =====
-const LS={get(k){try{return JSON.parse(localStorage.getItem(k))}catch{return null}},set(k,v){localStorage.setItem(JSON.stringify(v))}};
+var LS={get(k){try{return JSON.parse(localStorage.getItem(k))}catch{return null}},set(k,v){localStorage.setItem(JSON.stringify(v))}};
 if(!LS.get('pos')) LS.set('pos',[]);
 if(!LS.get('cap')) LS.set('cap',{total:100000,cash:50000});
 
@@ -225,7 +225,7 @@ function savePos(arr){LS.set('pos',arr);renderAll()}
 function saveCapObj(obj){LS.set('cap',obj);renderAll()}
 
 // ===== 模拟行情 =====
-const stockNames={
+var stockNames={
   '000001':'平安银行','000002':'万科A','000858':'五粮液','002594':'比亚迪',
   '300750':'宁德时代','600036':'招商银行','600519':'贵州茅台','601318':'中国平安',
   '600887':'伊利股份','002415':'海康威视','000333':'美的集团','300059':'东方财富',
@@ -233,17 +233,17 @@ const stockNames={
   '000725':'京东方A','601888':'中国中免','300015':'爱尔眼科','600809':'山西汾酒',
   '688981':'中芯国际','601012':'隆基绿能','002714':'牧原股份','300274':'阳光电源'
 };
-let quoteCache={};
+var quoteCache={};
 function getQuote(code){
   if(mockCache[code]) return mockCache[code];
-  let base=code.startsWith('688')?55:code.startsWith('60')?28:code.startsWith('00')?22:code.startsWith('30')?65:45;
-  let baseP=base+Math.random()*30;
-  let change=(Math.random()-0.45)*6;
-  let q={code,name:stockNames[code]||code,price:parseFloat(baseP.toFixed(2)),change:parseFloat(change.toFixed(2)),high:parseFloat((baseP+Math.random()*2).toFixed(2)),low:parseFloat((baseP-Math.random()*2).toFixed(2)),open:parseFloat((baseP-Math.random()*1).toFixed(2)),vol:Math.floor(Math.random()*50000000)};
+  var base=code.startsWith('688')?55:code.startsWith('60')?28:code.startsWith('00')?22:code.startsWith('30')?65:45;
+  var baseP=base+Math.random()*30;
+  var change=(Math.random()-0.45)*6;
+  var q={code,name:stockNames[code]||code,price:parseFloat(baseP.toFixed(2)),change:parseFloat(change.toFixed(2)),high:parseFloat((baseP+Math.random()*2).toFixed(2)),low:parseFloat((baseP-Math.random()*2).toFixed(2)),open:parseFloat((baseP-Math.random()*1).toFixed(2)),vol:Math.floor(Math.random()*50000000)};
   mockCache[code]=q;
   return q;
 }
-const mockIdx={'上证指数':{price:3215.48,change:0.37},'深证成指':{price:10786.32,change:-0.21},'创业板指':{price:2156.78,change:0.85},'科创50':{price:876.54,change:1.23}};
+var mockIdx={'上证指数':{price:3215.48,change:0.37},'深证成指':{price:10786.32,change:-0.21},'创业板指':{price:2156.78,change:0.85},'科创50':{price:876.54,change:1.23}};
 
 // ===== 渲染 =====
 function fmt(n,d=2){return (n||0).toFixed(d)}
@@ -251,42 +251,42 @@ function cls(v){return v>=0?'u':'d'}
 function sign(v){return v>=0?'+':''}
 
 function renderIdx(){
-  let h='';
-  for(let[k,v]of Object.entries(getIdx())) h+=`<div class="idx-item"><div class="n">${k}</div><div class="v ${cls(v.change)}">${fmt(v.price)}</div><div class="c ${cls(v.change)}">${sign(v.change)}${fmt(v.change)}%</div></div>`;
+  var h='';
+  for(var[k,v]of Object.entries(getIdx())) h+="<div class="idx-item"><div class="n">"+k+"</div><div class="v "+cls(v.change)>"+fmt(v.price)+"</div><div class="c "+cls(v.change)>"+sign(v.change)+fmt(v.change)+"%</div></div>";
   document.getElementById('idxBar').innerHTML=h;
 }
 function renderSummary(){
-  let pos=getPos(),cap=getCap(),mv=0,pnl=0;
-  pos.forEach(p=>{let q=getQuote(p.code),m=p.qty*q.price;mv+=m;pnl+=m-p.qty*p.price_buy;});
-  document.getElementById('summary').innerHTML=`<div class="gi"><div class="l">总资产</div><div class="v">${fmt(cap.total)}</div></div><div class="gi"><div class="l">持仓市值</div><div class="v">${fmt(mv)}</div></div><div class="gi"><div class="l">可用资金</div><div class="v">${fmt(cap.cash)}</div></div><div class="gi"><div class="l">总盈亏</div><div class="v ${cls(pnl)}">${sign(pnl)}${fmt(pnl)}</div></div>`;
+  var pos=getPos(),cap=getCap(),mv=0,pnl=0;
+  pos.forEach(function(p) {var q=getQuote(p.code),m=p.qty*q.price;mv+=m;pnl+=m-p.qty*p.price_buy;});
+  document.getElementById('summary').innerHTML="<div class="gi"><div class="l">总资产</div><div class="v">"+fmt(cap.total)+"</div></div><div class="gi"><div class="l">持仓市值</div><div class="v">"+fmt(mv)+"</div></div><div class="gi"><div class="l">可用资金</div><div class="v">"+fmt(cap.cash)+"</div></div><div class="gi"><div class="l">总盈亏</div><div class="v "+cls(pnl)>"+sign(pnl)+fmt(pnl)+"</div></div>";
 }
 function renderPositions(){
-  let pos=getPos(),h='';
-  if(pos.length===0){h=`<div class="empty"><div class="ico">📊</div><div>暂无持仓</div><div class="small">点击下方"持仓"→"导入截图"快速添加</div></div>`;document.getElementById('btnAdvice').style.display='none';document.getElementById('posTitle').style.display='none';}
+  var pos=getPos(),h='';
+  if(pos.length===0){h="<div class="empty"><div class="ico">📊</div><div>暂无持仓</div><div class="small">点击下方"持仓"→"导入截图"快速添加</div></div>";document.getElementById('btnAdvice').style.display='none';document.getElementById('posTitle').style.display='none';}
   else{document.getElementById('btnAdvice').style.display='block';document.getElementById('posTitle').style.display='block';
-    pos.forEach(p=>{let q=getQuote(p.code),mv=q.price*p.qty,cv=p.price_buy*p.qty,pf=mv-cv,pfp=cv>0?(pf/cv*100):0;
-      h+=`<div class="pos-row"><div class="pos-info"><div><span class="pos-name">${q.name}</span><span class="pos-code">${p.code}</span></div><div class="pos-price">成本${fmt(p.price_buy)} | 现价${fmt(q.price)} | ${p.qty}股</div></div><div class="pos-pnl"><div class="pf ${cls(pfp)}">${sign(pfp)}${fmt(pfp)}%</div><div class="pc ${cls(pf)}">${sign(pf)}${fmt(pf)}</div></div></div>`;});
+    pos.forEach(function(p) {var q=getQuote(p.code),mv=q.price*p.qty,cv=p.price_buy*p.qty,pf=mv-cv,pfp=cv>0?(pf/cv*100):0;
+      h+="<div class="pos-row"><div class="pos-info"><div><span class="pos-name">"+q.name+"</span><span class="pos-code">"+p.code+"</span></div><div class="pos-price">成本"+fmt(p.price_buy)+" | 现价"+fmt(q.price)+" | "+p.qty+"股</div></div><div class="pos-pnl"><div class="pf "+cls(pfp)>"+sign(pfp)+fmt(pfp)+"%</div><div class="pc "+cls(pf)>"+sign(pf)+fmt(pf)+"</div></div></div>";});
   }
   document.getElementById('posList').innerHTML=h;
 }
 function renderManage(){
-  let pos=getPos();
-  if(pos.length===0) document.getElementById('posManage').innerHTML=`<div class="empty"><div class="ico">📋</div><div>还没有持仓记录</div></div>`;
-  else{let h='';pos.forEach((p,i)=>{let q=getQuote(p.code);h+=`<div class="pos-row"><div class="pos-info"><div><span class="pos-name">${q.name}</span><span class="pos-code">${p.code}</span></div><div class="pos-price">${p.qty}股 @ ${fmt(p.price_buy)}</div></div><button class="btn btn-s btn-r" onclick="delPos(${i})">删除</button></div>`;});document.getElementById('posManage').innerHTML=h;}
-  let cap=getCap();
+  var pos=getPos();
+  if(pos.length===0) document.getElementById('posManage').innerHTML="<div class="empty"><div class="ico">📋</div><div>还没有持仓记录</div></div>";
+  else{var h='';pos.forEach(function(p,i) {var q=getQuote(p.code);h+="<div class="pos-row"><div class="pos-info"><div><span class="pos-name">"+q.name+"</span><span class="pos-code">"+p.code+"</span></div><div class="pos-price">"+p.qty+"股 @ "+fmt(p.price_buy)+"</div></div><button class="btn btn-s btn-r" onclick="delPos("+i+")">删除</button></div>";});document.getElementById('posManage').innerHTML=h;}
+  var cap=getCap();
   document.getElementById('capTotal').value=cap.total;
   document.getElementById('capCash').value=cap.cash;
 }
 
 function genAdvice(){
-  let pos=getPos(),cap=getCap();
+  var pos=getPos(),cap=getCap();
   if(pos.length===0){document.getElementById('adviceTxt').innerHTML='⚠️ 暂无持仓，请先添加持仓记录。';document.getElementById('adviceBox').style.display='block';return;}
-  let lines=[],totalRisk=0;
-  let idxChg=mockIdx['上证指数'].change;
-  let marketView=idxChg>1?'偏强':idxChg<-1?'偏弱':'震荡';
-  lines.push(`【市场环境】上证${sign(idxChg)}${fmt(idxChg)}%，市场${marketView}`);
+  var lines=[],totalRisk=0;
+  var idxChg=mockIdx['上证指数'].change;
+  var marketView=idxChg>1?'偏强':idxChg<-1?'偏弱':'震荡';
+  lines.push("【市场环境】上证"+sign(idxChg)+fmt(idxChg)+"%，市场"+marketView);
   lines.push('');
-  pos.forEach(p=>{let q=getQuote(p.code),pfp=(q.price-p.price_buy)/p.price_buy*100,advice='';
+  pos.forEach(function(p) {var q=getQuote(p.code),pfp=(q.price-p.price_buy)/p.price_buy*100,advice='';
     if(pfp>15)advice='⚠️ 止盈：涨幅较大，建议分批止盈';
     else if(pfp>5)advice='✅ 持有：趋势向好，继续持有';
     else if(pfp<-10)advice='🔴 止损：跌幅较大，设止损控制风险';
@@ -295,13 +295,13 @@ function genAdvice(){
     else advice='⏳ 观望：略亏，等待企稳';
     if(q.change>5)advice+=' | 今日大幅拉升，注意追高风险';
     if(q.change<-5)advice+=' | 今日大幅下跌，关注支撑位';
-    lines.push(`📌 ${q.name}(${p.code})`);
-    lines.push(`   成本${fmt(p.price_buy)} → 现价${fmt(q.price)} | 盈亏${sign(pfp)}${fmt(pfp)}%`);
-    lines.push(`   建议：${advice}`);lines.push('');
+    lines.push("📌 "+q.name+"("+p.code+")");
+    lines.push("   成本"+fmt(p.price_buy)+" → 现价"+fmt(q.price)+" | 盈亏"+sign(pfp)+fmt(pfp)+"%");
+    lines.push("   建议："+advice);lines.push('');
     if(pfp<-5)totalRisk+=Math.abs(pfp);
   });
-  let mv=pos.reduce((s,p)=>s+getQuote(p.code).price*p.qty,0),ratio=mv/cap.total*100;
-  lines.push(`【仓位管理】当前仓位${fmt(ratio)}%`);
+  var mv=pos.reduce((s,p)=>s+getQuote(p.code).price*p.qty,0),ratio=mv/cap.total*100;
+  lines.push("【仓位管理】当前仓位"+fmt(ratio)+"%");
   if(ratio>80)lines.push('⚠️ 仓位偏重，建议降低至6-7成');
   else if(ratio>60)lines.push('⚡ 仓位适中，可灵活调整');
   else if(ratio>30)lines.push('👍 仓位较轻，可关注机会加仓');
@@ -311,19 +311,19 @@ function genAdvice(){
   document.getElementById('adviceBox').style.display='block';
 }
 function genReview(){
-  let pos=getPos(),idx=getIdx(),lines=[];
-  lines.push(`📅 复盘日期：${new Date().toISOString().slice(0,10)}`);lines.push('');
+  var pos=getPos(),idx=getIdx(),lines=[];
+  lines.push("📅 复盘日期："+new Date().toISOString().slice(0,10));lines.push('');
   lines.push('━━━ 大盘概况 ━━━');
-  for(let[k,v]of Object.entries(idx)) lines.push(`${k}：${fmt(v.price)}（${sign(v.change)}${fmt(v.change)}%）`);
-  let mc=idx['上证指数'].change>0?'收红':'收绿';
-  lines.push(`市场整体${mc}，交投活跃度中等`);lines.push('');
+  for(var[k,v]of (function(o){var k=[],i;for(i in o)if(o.hasOwnProperty(i))k.push([i,o[i]]);return k})(idx)) lines.push(k+"："+fmt(v.price)+"（"+sign(v.change)+fmt(v.change)+"%）");
+  var mc=idx['上证指数'].change>0?'收红':'收绿';
+  lines.push("市场整体"+mc+"，交投活跃度中等");lines.push('');
   lines.push('━━━ 板块分析 ━━━');
   lines.push('领涨：人工智能、新能源、半导体');
   lines.push('领跌：房地产、银行、煤炭');
   lines.push('北向资金小幅流入，内资观望情绪较重');lines.push('');
   lines.push('━━━ 持仓回顾 ━━━');
   if(pos.length===0)lines.push('暂无持仓记录');
-  else pos.forEach(p=>{let q=getQuote(p.code),pfp=(q.price-p.price_buy)/p.price_buy*100;lines.push(`${q.name}(${p.code})：${sign(pfp)}${fmt(pfp)}%`);});
+  else pos.forEach(function(p) {var q=getQuote(p.code),pfp=(q.price-p.price_buy)/p.price_buy*100;lines.push(q.name+"("+p.code+")："+sign(pfp)+fmt(pfp)+"%");});
   lines.push('');lines.push('━━━ 明日策略 ━━━');
   lines.push('1. 关注量能变化，若放量突破可适当加仓');
   lines.push('2. 持仓股设好止损位，控制回撤风险');
@@ -332,7 +332,7 @@ function genReview(){
   lines.push('科技：芯片ETF、科创50ETF');
   lines.push('消费：白酒板块关注底部信号');
   lines.push('新能源：关注锂电龙头调整后的机会');
-  document.getElementById('reviewBox').innerHTML=`<div class="card" style="margin-bottom:8px">${lines.map(l=>`<p style="font-size:14px;line-height:1.8;color:var(--txt);margin:0;white-space:pre-wrap">${l}</p>`).join('')}</div>`;
+  document.getElementById('reviewBox').innerHTML='<div class="card" style="margin-bottom:8px">'+lines.map(function(l){return '<p style="font-size:14px;line-height:1.8;color:var(--txt);margin:0;white-space:pre-wrap">'+l+'</p>'}).join('')+'</div>';
 }
 
 function renderAll(){renderIdx();renderSummary();renderPositions();renderManage();}
@@ -343,33 +343,33 @@ function openAddPos(){document.getElementById('modalAdd').classList.add('on');cl
 function clearAddForm(){document.getElementById('addCode').value='';document.getElementById('addName').value='';document.getElementById('addPrice').value='';document.getElementById('addQty').value='100';}
 document.getElementById('modalAdd').addEventListener('click',function(e){if(e.target===this){this.classList.remove('on');clearAddForm();}});
 function addPosition(){
-  let code=document.getElementById('addCode').value.trim(),name=document.getElementById('addName').value.trim(),price=parseFloat(document.getElementById('addPrice').value),qty=parseInt(document.getElementById('addQty').value);
+  var code=document.getElementById('addCode').value.trim(),name=document.getElementById('addName').value.trim(),price=parseFloat(document.getElementById('addPrice').value),qty=parseInt(document.getElementById('addQty').value);
   if(!code||!price||!qty||isNaN(price)||isNaN(qty)){alert('请填写完整信息');return}
-  let pos=getPos();
+  var pos=getPos();
   // 检查重复
-  let exist=pos.findIndex(p=>p.code===code);
-  if(exist>=0){if(!confirm(`${code} 已存在，是否覆盖？`))return;pos[exist]={code,name,price_buy:price,qty,date:new Date().toISOString().slice(0,10)};}
+  var exist=pos.findIndex(function(p){return p.code===code});
+  if(exist>=0){if(!confirm(code+" 已存在，是否覆盖？"))return;pos[exist]={code,name,price_buy:price,qty,date:new Date().toISOString().slice(0,10)};}
   else pos.push({code,name,price_buy:price,qty,date:new Date().toISOString().slice(0,10)});
   savePos(pos);document.getElementById('modalAdd').classList.remove('on');clearAddForm();
 }
-function delPos(i){if(!confirm('确定删除该持仓？'))return;let pos=getPos();pos.splice(i,1);savePos(pos);}
+function delPos(i){if(!confirm('确定删除该持仓？'))return;var pos=getPos();pos.splice(i,1);savePos(pos);}
 function saveCapital(){
-  let t=parseFloat(document.getElementById('capTotal').value),c=parseFloat(document.getElementById('capCash').value);
+  var t=parseFloat(document.getElementById('capTotal').value),c=parseFloat(document.getElementById('capCash').value);
   if(isNaN(t)||isNaN(c)){alert('请填写有效金额');return}
   saveCapObj({total:t,cash:c});
 }
 function switchPg(pg){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('show'));
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('show'));
+  document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('on'));
   document.getElementById('pg-'+pg).classList.add('show');
-  document.querySelector(`[data-pg="${pg}"]`).classList.add('on');
+  document.querySelector("[data-pg=pg]").classList.add('on');
   if(pg==='dash'){renderIdx();renderSummary();renderPositions();}
   if(pg==='hold')renderManage();
   if(pg==='rev')genReview();
 }
 
 // ===== 截图导入OCR =====
-let ocrParsedPositions=[];
+var ocrParsedPositions=[];
 
 function openImportModal(){
   ocrParsedPositions=[];
@@ -383,13 +383,13 @@ function openImportModal(){
 document.getElementById('modalImport').addEventListener('click',function(e){if(e.target===this)this.classList.remove('on');});
 
 function handleImportFile(event){
-  let file=event.target.files[0];
+  var file=event.target.files[0];
   if(!file)return;
 
   // 预览
-  let reader=new FileReader();
+  var reader=new FileReader();
   reader.onload=function(e){
-    let img=document.getElementById('imgPreview');
+    var img=document.getElementById('imgPreview');
     img.src=e.target.result;
     img.style.display='block';
   };
@@ -408,19 +408,19 @@ function handleImportFile(event){
   doOCR(file);
 }
 
-async function doOCR(file){
+function doOCR(file){
   try{
-    let statusEl=document.getElementById('ocrStatus');
-    let progressEl=document.getElementById('ocrProgress');
+    var statusEl=document.getElementById('ocrStatus');
+    var progressEl=document.getElementById('ocrProgress');
 
     statusEl.textContent='OCR引擎加载中...';
 
-    let worker=await Tesseract.createWorker('chi_sim+eng',1,{
-      logger:m=>{
+    return Tesseract.createWorker('chi_sim+eng',1,{
+      logger:function(m) {
         if(m.status==='recognizing text'){
-          let pct=10+Math.round(m.progress*70);
+          var pct=10+Math.round(m.progress*70).then(function(worker) {
           progressEl.style.width=pct+'%';
-          statusEl.textContent=`识别中... ${Math.round(m.progress*100)}%`;
+          statusEl.textContent="识别中... "+Math.round(m.progress*100)+"%";
         }
       }
     });
@@ -428,14 +428,14 @@ async function doOCR(file){
     progressEl.style.width='80%';
     statusEl.textContent='文字识别中...';
 
-    let result=await worker.recognize(file);
-    await worker.terminate();
+    return worker.recognize(file).then(function(result) {
+    worker.terminate();
 
     progressEl.style.width='100%';
     statusEl.textContent='识别完成，正在解析...';
 
     // 显示原始OCR文本
-    let rawText=result.data.text;
+    var rawText=result.data.text;
     document.getElementById('ocrRawText').textContent=rawText;
     document.getElementById('ocrRawText').style.display='block';
 
@@ -443,7 +443,7 @@ async function doOCR(file){
     ocrParsedPositions=parseStockPositions(rawText);
     renderParseResults(ocrParsedPositions);
 
-    statusEl.textContent=`识别完成，找到 ${ocrParsedPositions.length} 条持仓记录`;
+    statusEl.textContent="识别完成，找到 "+ocrParsedPositions.length+" 条持仓记录";
   }catch(err){
     console.error('OCR失败:',err);
     document.getElementById('ocrError').textContent='OCR识别失败: '+err.message+'。请确认截图清晰度，或尝试手动添加。';
@@ -459,21 +459,21 @@ function parseStockPositions(text){
   // 证券代码  证券名称  持仓数量  成本价  现价  盈亏
   // 000001   平安银行   1000    10.50   10.80  +300.00
 
-  let positions=[];
-  let lines=text.split('\n').map(l=>l.trim()).filter(l=>l);
+  var positions=[];
+  var lines=text.split('\n').map(function(l){return l.trim()}).filter(function(l){return l});
 
   // 正则匹配: 6位数字代码 + 中文名称 + 数字
-  let stockPattern=/(\d{6})\s+([\u4e00-\u9fa5A-Za-z*]+)\s+.*?(\d[\d,]*)\s+.*?([\d.]+)/;
+  var stockPattern=/(\d{6})\s+([\u4e00-\u9fa5A-Za-z*]+)\s+.*?(\d[\d,]*)\s+.*?([\d.]+)/;
   // 更宽松的匹配
-  let loosePattern=/(\d{6})\D+([\u4e00-\u9fa5A-Za-z*]{2,8})\D+(\d[\d,]*)\D+([\d.]{3,8})/;
+  var loosePattern=/(\d{6})\D+([\u4e00-\u9fa5A-Za-z*]{2,8})\D+(\d[\d,]*)\D+([\d.]{3,8})/;
 
-  for(let line of lines){
+  for(var _i=0;_i<lines.length;_i++){var line=lines[_i];
     // 跳过标题行
     if(/证券代码|持仓|盈亏|合计|代码/.test(line)&&!/\d{6}/.test(line))continue;
 
-    let m=line.match(stockPattern)||line.match(loosePattern);
+    var m=line.match(stockPattern)||line.match(loosePattern);
     if(m){
-      let code=m[1],
+      var code=m[1],
           name=m[2].replace(/\*/g,'').trim(),
           qty=parseInt(m[3].replace(/,/g,'')),
           price=parseFloat(m[4]);
@@ -485,7 +485,7 @@ function parseStockPositions(text){
         if(name.length<2)continue;
 
         // 去重
-        if(!positions.find(p=>p.code===code)){
+        if(!positions.find(function(p){return p.code===code})){
           positions.push({code,name,price_buy:price,qty,date:new Date().toISOString().slice(0,10),checked:true});
         }
       }
@@ -496,27 +496,27 @@ function parseStockPositions(text){
 }
 
 function renderParseResults(positions){
-  let el=document.getElementById('parsedResults');
+  var el=document.getElementById('parsedResults');
   if(positions.length===0){
     el.innerHTML='<p style="color:var(--gld);text-align:center;margin:12px 0">⚠️ 未能自动识别到持仓数据</p><p style="font-size:12px;color:var(--tx2);text-align:center">请检查截图是否包含持仓页面，或使用手动添加</p>';
     document.getElementById('btnSaveImport').style.display='none';
     return;
   }
 
-  let h='<h3 style="margin-top:12px">识别结果（勾选需导入的项目）</h3>';
-  positions.forEach((p,i)=>{
-    h+=`<div class="parsed-pos" style="cursor:pointer;${p.checked?'':'opacity:.5'}" onclick="toggleParsed(${i})">
+  var h='<h3 style="margin-top:12px">识别结果（勾选需导入的项目）</h3>';
+  positions.forEach(function(p,i) {
+    h+="<div class="parsed-pos" style="cursor:pointer;"+p.checked?'':'opacity:.5' onclick="toggleParsed("+i+")">
       <div class="pp-head">
-        <span>${p.name} <span class="badge ${p.checked?'badge-ok':'badge-warn'}">${p.checked?'✓ 导入':'✗ 跳过'}</span></span>
-        <span style="color:var(--tx2)">${p.code}</span>
+        <span>"+p.name+" <span class="badge "+p.checked?'badge-ok':'badge-warn'>"+p.checked?'✓ 导入':'✗ 跳过'+"</span></span>
+        <span style="color:var(--tx2)">"+p.code+"</span>
       </div>
-      <div class="pp-body">成本价: ${fmt(p.price_buy)} | 数量: ${p.qty}股</div>
-    </div>`;
+      <div class="pp-body">成本价: "+fmt(p.price_buy)+" | 数量: "+p.qty+"股</div>
+    </div>";
   });
   h+='<div style="font-size:12px;color:var(--tx2);text-align:center;margin-top:8px">💡 点击可切换"导入/跳过"，识别有误可手动修正</div>';
   el.innerHTML=h;
 
-  let hasChecked=positions.some(p=>p.checked);
+  var hasChecked=positions.some(function(p){return p.checked});
   document.getElementById('btnSaveImport').style.display=hasChecked?'block':'none';
 }
 
@@ -526,19 +526,19 @@ function toggleParsed(i){
 }
 
 function saveImportedPositions(){
-  let toImport=ocrParsedPositions.filter(p=>p.checked);
+  var toImport=ocrParsedPositions.filter(function(p){return p.checked});
   if(toImport.length===0){alert('请至少勾选一条持仓记录');return}
 
-  let existing=getPos();
-  toImport.forEach(p=>{
-    let idx=existing.findIndex(e=>e.code===p.code);
+  var existing=getPos();
+  toImport.forEach(function(p) {
+    var idx=existing.findIndex(function(e){return e.code===p.code});
     if(idx>=0)existing[idx]=p;
     else existing.push(p);
   });
   savePos(existing);
   document.getElementById('modalImport').classList.remove('on');
 }
-setInterval(()=>{quoteCache={};if(document.getElementById('pg-dash').classList.contains('show')){renderIdx();renderSummary();renderPositions();}},15000);
+setInterval(function() {quoteCache={};if(document.getElementById('pg-dash').classList.contains('show')){renderIdx();renderSummary();renderPositions();}},15000);
 </script>
 // Sina Finance real-time API integration
 var isOnline=false,quoteCache={},idxCache=null,STOCK_NAMES={},refreshTimer=null;
@@ -546,26 +546,24 @@ var isOnline=false,quoteCache={},idxCache=null,STOCK_NAMES={},refreshTimer=null;
 function sCode(c){return(c.startsWith("60")||c.startsWith("68"))?"sh"+c:"sz"+c}
 function loadScript(u){return new Promise(function(r,j){var s=document.createElement("script"),d=false;s.src=u;s.onload=function(){d=true;r()};s.onerror=function(){if(!d)j(Error("fail"))};setTimeout(function(){if(!d){d=true;j(Error("timeout"))}},8e3);document.head.appendChild(s)})}
 
-async function fetchQuotes(codes){
-  if(!codes.length)return{};
-  try{
-    await loadScript("https://hq.sinajs.cn/list="+codes.map(sCode).join(","));
+function fetchQuotes(codes){
+  if(!codes.length)return Promise.resolve({});
+  return loadScript("https://hq.sinajs.cn/list="+codes.map(sCode).join(",")).then(function(){
     var r={};
     codes.forEach(function(c){
       var raw=window["hq_str_"+sCode(c)];
       if(raw){var p=raw.split(",");if(p.length>=10){var n=p[0],pr=parseFloat(p[3])||0,pc=parseFloat(p[2])||0;STOCK_NAMES[c]=n;r[c]={code:c,name:n,price:pr,change:pc>0?(pr-pc)/pc*100:0,high:parseFloat(p[4])||0,low:parseFloat(p[5])||0,open:parseFloat(p[1])||0,vol:parseFloat(p[8])||0}}delete window["hq_str_"+sCode(c)]}
     });
     return r;
-  }catch(e){console.log(e);return null}
+  },function(e){console.log(e);return null});
 }
 
-async function fetchIndex(){
-  try{
-    await loadScript("https://hq.sinajs.cn/list=s_sh000001,s_sz399001,s_sz399006,s_sh000688");
+function fetchIndex(){
+  return loadScript("https://hq.sinajs.cn/list=s_sh000001,s_sz399001,s_sz399006,s_sh000688").then(function(){
     var m={"s_sh000001":"SSE","s_sz399001":"SZSE","s_sz399006":"ChiNext","s_sh000688":"STAR50"},r={};
     for(var k in m){var raw=window["hq_str_"+k];if(raw){var p=raw.split(",");if(p.length>=4)r[m[k]]={price:parseFloat(p[1])||0,change:parseFloat(p[3])||0};delete window["hq_str_"+k]}}
     return Object.keys(r).length?r:null;
-  }catch(e){return null}
+  },function(e){return null});
 }
 
 var MOCK_IDX={SSE:{price:3215.48,change:0.37},SZSE:{price:10786.32,change:-0.21},ChiNext:{price:2156.78,change:0.85},STAR50:{price:876.54,change:1.23}};
@@ -574,15 +572,18 @@ function mockQ(c){var b=c.startsWith("688")?55:c.startsWith("60")?28:c.startsWit
 function getQuote(c){return isOnline&&quoteCache[c]?quoteCache[c]:mockQ(c)}
 function getIdx(){return isOnline&&idxCache?idxCache:MOCK_IDX}
 
-async function toggleOnline(){
+function toggleOnline(){
   isOnline=!isOnline;
   var b=document.getElementById("btnMode"),t=document.getElementById("modeTip"),s=document.getElementById("apiStatus");
   if(isOnline){
     b.style.borderColor="var(--up)";b.style.color="var(--up)";b.innerHTML='<span class="dot on"></span> Online';
     t.textContent="Live (Sina Finance)";s.textContent="Fetching...";
-    try{var idx=await fetchIndex();if(idx){idxCache=idx;s.textContent="Updated "+new Date().toLocaleTimeString()}}catch(e){}
-    var codes=getPos().map(function(p){return p.code});
-    if(codes.length){try{var qs=await fetchQuotes(codes);if(qs)Object.assign(quoteCache,qs)}catch(e){}}
+    fetchIndex().then(function(idx){
+      if(idx){idxCache=idx;s.textContent="Updated "+new Date().toLocaleTimeString()}
+    },function(e){}).then(function(){
+      var codes=getPos().map(function(p){return p.code});
+      if(codes.length){return fetchQuotes(codes).then(function(qs){if(qs)Object.assign(quoteCache,qs)},function(e){})}
+    });
     refreshTimer=setInterval(refreshOnline,1e4);
   }else{
     b.style.borderColor="var(--gld)";b.style.color="var(--gld)";b.innerHTML='<span class="dot off"></span> Offline';
@@ -593,12 +594,18 @@ async function toggleOnline(){
   renderAll()
 }
 
-async function refreshOnline(){
+function refreshOnline(){
   if(!isOnline)return;
   var s=document.getElementById("apiStatus");
-  try{var idx=await fetchIndex();if(idx)idxCache=idx}catch(e){}
-  var codes=getPos().map(function(p){return p.code});
-  if(codes.length){try{var qs=await fetchQuotes(codes);if(qs)Object.assign(quoteCache,qs);s.textContent="Refresh "+new Date().toLocaleTimeString()}catch(e){s.textContent="Error: "+e.message}}
+  fetchIndex().then(function(idx){if(idx)idxCache=idx},function(e){}).then(function(){
+    var codes=getPos().map(function(p){return p.code});
+    if(codes.length){
+      return fetchQuotes(codes).then(function(qs){
+        if(qs)Object.assign(quoteCache,qs);
+        s.textContent="Refresh "+new Date().toLocaleTimeString()
+      },function(e){s.textContent="Error: "+e.message})
+    }
+  });
   if(document.getElementById("pg-dash").classList.contains("show"))renderDash()
 }
 
